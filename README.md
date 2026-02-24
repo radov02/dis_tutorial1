@@ -47,9 +47,19 @@ More info on the most important concepts:
 
 Install the turtlesim package, if it's not already installed:
 
+`sudo apt update && sudo apt install ros-dev-tools`
+
+`sudo apt upgrade`
+
 `sudo apt install ros-jazzy-turtlesim`
 
 All binary ROS packages are all typically available on apt following the ros-<ros_version_name>-<package_name> convention.
+
+`sudo apt install terminator -y`
+
+`echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc`
+
+`source ~/.bashrc`
 
 Open a new terminal window and run the command:
 
@@ -72,23 +82,147 @@ Note that by typing −h or −help after the command verb will print informatio
 
 Run the node dis_tutorial1/draw_square.py, and observe its effect on the turtle. Print out and analyze the messages being sent to the turtle. Which node is responsible for the turtle movement and what is the structure of the messages?
 
+In one terminal inside `~/rins` run: `ros2 run turtlesim turtlesim_node` and in another run `ros2 run dis_tutorial1 py_draw_square.py`.
+
 Answer the following questions:
 
-- Which **nodes** are currently active?
-- What **topics** are currently active?
-- What is the **message type** for each topic?
-- To which topics is each node **publishing**?
-- To which topics is each node **subscribed**?
-- What are the packages that define different **message types**?
-- Which **parameters** can be set on which nodes?
+- Which **nodes** are currently active? In third terminal run `ros2 node list`:
+```
+/draw_square
+/turtlesim
+```
+- What **topics** are currently active? In third terminal run `ros2 topic list`:
+```
+/parameter_events
+/rosout
+/turtle1/cmd_vel
+/turtle1/color_sensor
+/turtle1/pose
+```
+- What is the **message type** for each topic? In third terminal run `ros2 topic list -t`:
+```
+/parameter_events [rcl_interfaces/msg/ParameterEvent]
+/rosout [rcl_interfaces/msg/Log]
+/turtle1/cmd_vel [geometry_msgs/msg/Twist]
+/turtle1/color_sensor [turtlesim/msg/Color]
+/turtle1/pose [turtlesim/msg/Pose]
+```
+- To which topics is each node **publishing**? In third terminal we run `ros2 node info /draw_square`:
+```
+/draw_square
+  Subscribers:
+    /turtle1/pose: turtlesim/msg/Pose
+  Publishers:
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+    /rosout: rcl_interfaces/msg/Log
+    /turtle1/cmd_vel: geometry_msgs/msg/Twist
+  Service Servers:
+    /draw_square/describe_parameters: rcl_interfaces/srv/DescribeParameters
+    /draw_square/get_parameter_types: rcl_interfaces/srv/GetParameterTypes
+    /draw_square/get_parameters: rcl_interfaces/srv/GetParameters
+    /draw_square/get_type_description: type_description_interfaces/srv/GetTypeDescription
+    /draw_square/list_parameters: rcl_interfaces/srv/ListParameters
+    /draw_square/set_parameters: rcl_interfaces/srv/SetParameters
+    /draw_square/set_parameters_atomically: rcl_interfaces/srv/SetParametersAtomically
+  Service Clients:
+    /reset: std_srvs/srv/Empty
+  Action Servers:
+
+  Action Clients:
+
+```
+We see that `/draw_square` is publishing to the topics `/parameter_events`, `/rosout`, `/turtle1/cmd_vel`.
+In third terminal we run `ros2 node info /turtlesim`:
+```
+/turtlesim
+  Subscribers:
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+    /turtle1/cmd_vel: geometry_msgs/msg/Twist
+  Publishers:
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+    /rosout: rcl_interfaces/msg/Log
+    /turtle1/color_sensor: turtlesim/msg/Color
+    /turtle1/pose: turtlesim/msg/Pose
+  Service Servers:
+    /clear: std_srvs/srv/Empty
+    /kill: turtlesim/srv/Kill
+    /reset: std_srvs/srv/Empty
+    /spawn: turtlesim/srv/Spawn
+    /turtle1/set_pen: turtlesim/srv/SetPen
+    /turtle1/teleport_absolute: turtlesim/srv/TeleportAbsolute
+    /turtle1/teleport_relative: turtlesim/srv/TeleportRelative
+    /turtlesim/describe_parameters: rcl_interfaces/srv/DescribeParameters
+    /turtlesim/get_parameter_types: rcl_interfaces/srv/GetParameterTypes
+    /turtlesim/get_parameters: rcl_interfaces/srv/GetParameters
+    /turtlesim/get_type_description: type_description_interfaces/srv/GetTypeDescription
+    /turtlesim/list_parameters: rcl_interfaces/srv/ListParameters
+    /turtlesim/set_parameters: rcl_interfaces/srv/SetParameters
+    /turtlesim/set_parameters_atomically: rcl_interfaces/srv/SetParametersAtomically
+  Service Clients:
+
+  Action Servers:
+    /turtle1/rotate_absolute: turtlesim/action/RotateAbsolute
+  Action Clients:
+
+```
+We see that `/turtlesim` is publishing to the topics `/parameter_events`, `/rosout`, `/turtle1/color_sensor`, `/turtle1/pose`.
+
+- To which topics is each node **subscribed**? Node `/draw_square` is subscribed to topic `/turtle1/pose` and node `/turtlesim` is subscribed to topics `/parameter_events` and `/turtle1/cmd_vel`.
+
+- What are the packages that define different **message types**? Run `ros2 interface list` to get all active interfaces (message types under Messages), or `ros2 interface list | grep msg`. Then for message type (e.g. 'Twist') run: `ros2 interface list | grep Twist`:
+```
+    geometry_msgs/msg/Twist
+    geometry_msgs/msg/TwistStamped
+    geometry_msgs/msg/TwistWithCovariance
+    geometry_msgs/msg/TwistWithCovarianceStamped
+```
+Here first part is package ('geometry_msgs'). We can also see message structure via: `ros2 interface show geometry_msgs/msg/Twist`:
+```
+# This expresses velocity in free space broken into its linear and angular parts.
+
+Vector3  linear
+	float64 x
+	float64 y
+	float64 z
+Vector3  angular
+	float64 x
+	float64 y
+	float64 z
+```
+To see message type of a topic `/turtle1/cmd_vel` run: `ros2 topic info /turtle1/cmd_vel`:
+```
+Type: geometry_msgs/msg/Twist
+Publisher count: 1
+Subscription count: 1
+```
+
+- Which **parameters** can be set on which nodes? To see all parameters for one specific node (e.g. /my_node), run `ros2 param list /my_node` (or without `/my_node` to see for all active nodes):
+```
+  start_type_description_service
+  use_sim_time
+```
+Or more in detail run `ros2 param describe /draw_square start_type_description_service`:
+```
+Parameter name: start_type_description_service
+  Type: boolean
+  Description: If enabled, start the ~/get_type_description service.
+  Constraints:
+    Read only: true
+```
 
 Additionally, try to:
-- Get a **visualization** of all the nodes and topics in the system.
-- Get a printout of all the **packages** installed in the system.
-- Get a printout of all the **messages** installed in the system.
-- **Print** out the messages being published on each topic.
-- **Publish** a message on each topic.
-- **Set** the background color of turtlesim to a color of your choice.
+- Get a **visualization** of all the nodes and topics in the system. Install rqt graph and run `ros2 run rqt_graph rqt_graph`.
+- Get a printout of all the **packages** installed in the system. Run `ros2 pkg list`.
+- Get a printout of all the **messages** installed in the system. Run `ros2 interface list`.
+- **Print** out the messages being published on each topic. Run `ros2 topic echo <topic_name>`.
+- **Publish** a message on each topic. Run `ros2 topic pub <topic_name> <msg_type> '<args>'`.
+- **Set** the background color of turtlesim to a color of your choice. Run:
+```
+ros2 param set /turtlesim background_r 255
+ros2 param set /turtlesim background_g 0
+ros2 param set /turtlesim background_b 0
+ros2 service call /clear std_srvs/srv/Empty
+```
 
 Explore the usage of other commands that are found in the [ROS 2 Cheatsheet](https://www.theconstructsim.com/wp-content/uploads/2021/10/ROS2-Command-Cheat-Sheets-updated.pdf). You can also find the full turtlesim documentation [here](https://docs.ros.org/en/jazzy/Tutorials/Beginner-CLI-Tools/Introducing-Turtlesim/Introducing-Turtlesim.html#prerequisites).
 
@@ -96,18 +230,50 @@ Explore the usage of other commands that are found in the [ROS 2 Cheatsheet](htt
 
 Write a package that contains a simple program that you can run using the `ros2 run` command and outputs a string (e.g. "Hello from ROS!") to the terminal every second.
 
-Use the following tutorials as a starting point:
+Use the following tutorials as a starting point (from [Creating a package](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Creating-Your-First-ROS2-Package.html)):
 
-- [Creating a package](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Creating-Your-First-ROS2-Package.html)
+- package is organizational unit for ROS2 code (for installation and sharing)
+- package creation using ament as build system and colcon as build tool (CMake or Python)
+- ROS2 Python package minimum/base content:
+  - `package.xml` file that contains meta information about the package
+  - `resource/<package_name>` marker file for the package
+  - `setup.cfg` required only when package has executables, so `ros2 run` can find them
+  - `setup.py` contains instructions for how to install the package
+  - `<package_name>` is a directory used by ROS2 tools to find the package (contains `__init__.py`)
+  - therefore base file structure:
+  ```
+  my_package/
+      package.xml
+      resource/my_package
+      setup.cfg
+      setup.py
+      my_package/
+  ```
+- best practice to have src folder within workspace (`~/rins/src`) where we create our packages
+- package creation: 
+  - `cd ~/rins/src`, 
+  - `ros2 pkg create --build-type ament_python --license Apache-2.0 --node-name my_node my_package` (specify `--node-name` so that ROS2 generates also template source file `my_node.py` and adds executable entry points to build files; to delete package, just delete its folder: `rm -rf <your_package_name>`, also do this: `rm -rf build/ install/ log/`, which then requires `colcon build` again to rebuild other packages again)
+- package build and sourcing the setup file:
+  - `cd ~/rins` (to build all the packages within the `src` subdirectory and create setup files in the `install` subdirectory),
+  - `colcon build` (or to only build the selected packages: `colcon build --packages-select my_package`)
+  - `source install/setup.bash` or better add this line to `~/.bashrc` (this command is to make the newly built packages visible to ROS2 - added to path)
+- use package (run nodes):
+  - `ros2 run my_package my_node`
+- examine package contents:
+  - `cd ~/rins/src/my_package`
+  - `ls`
+  - inside the `my_package` is `my_node.py`, also other custom Python nodes will go there
+- customize meta information inside `~/rins/src/my_package/package.xml`
+  - the `<..._depend>` tags are where dependencies on other packages will be listed for colcon to search them
+  - also set the description, maintainer and license fields in file `setup.py`
 
-Now we can add two more nodes, one that sends a message and another one that retrieves it and prints it to the terminal.
+Now we can add two more nodes, one that sends a message and another one that retrieves it and prints it to the terminal (see [Simple publisher and subscriber in Python](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Publisher-And-Subscriber.html) or [Simple publisher and subscriber in C++](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Cpp-Publisher-And-Subscriber.html)):
+- `cd ~/rins`
+- create package for publisher node: `ros2 pkg create --build-type ament_python --license Apache-2.0 py_pubsub`
+- `cd ~/rins/src/py_pubsub/py_pubsub`
+- run `wget https://raw.githubusercontent.com/ros2/examples/jazzy/rclpy/topics/minimal_publisher/examples_rclpy_minimal_publisher/publisher_member_function.py` to get example code into `publisher_member_function.py` file
+- examine the code (imports/dependencies rclpy to get Node class and message type String, )
 
-- [Simple publisher and subscriber in C++](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Cpp-Publisher-And-Subscriber.html)
-- [Simple publisher and subscriber in Python](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Publisher-And-Subscriber.html)
-
-## Building a package
-
-In order to build a custom package, you should move to the workspace root directory and run the following: `colcon build`. This will build all the packages within the `src` subdirectory. Since this could take a long time, the flag `--packages-select <package name>` can be used to only build selected packages. The build process will also create setup files in the `install` subdirectory. To make the newly built packages visible to ROS2, you should run the following: `source install/local_setup.bash`. Then, you will be able to run your custom nodes using the following command: `ros2 run <package_name> <node_name>`.
 
 ## Services
 
