@@ -268,21 +268,66 @@ Use the following tutorials as a starting point (from [Creating a package](https
   - also set the description, maintainer and license fields in file `setup.py`
 
 Now we can add two more nodes, one that sends a message and another one that retrieves it and prints it to the terminal (see [Simple publisher and subscriber in Python](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Publisher-And-Subscriber.html) or [Simple publisher and subscriber in C++](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Cpp-Publisher-And-Subscriber.html)):
-- `cd ~/rins`
+- `cd ~/rins/src`
 - create package for publisher node: `ros2 pkg create --build-type ament_python --license Apache-2.0 py_pubsub`
 - `cd ~/rins/src/py_pubsub/py_pubsub`
 - run `wget https://raw.githubusercontent.com/ros2/examples/jazzy/rclpy/topics/minimal_publisher/examples_rclpy_minimal_publisher/publisher_member_function.py` to get example code into `publisher_member_function.py` file
-- examine the code (imports/dependencies rclpy to get Node class and message type String, )
+- examine the code (imports/dependencies rclpy to get Node class and message type String, MinimalPublisher class that inherits from Node, in constructor we create_publisher(msg_type, 'topic_name', queue_size) and create_timer(timer_period, timer_callback), the timer callback creates a message and publishes it (.publish(msg)), in main function we initialize rclpy library, create MinimalPublisher node, spin it so that callbacks are called, at the end destroy node and shutdown rclpy)
+- add dependencies:
+  - `cd ~/rins/src/py_pubsub`
+  - open `package.xml` and fill in the `<description>`, `<maintainer>` and `<license>` tags and add `<exec_depend>rclpy</exec_depend>`, `<exec_depend>std_msgs</exec_depend>`
+  - open `setup.py` and match the maintainer, maintainer_email, description and license fields to your package.xml and add the following line within the console_scripts brackets of the entry_points field: `entry_points={
+        'console_scripts': [
+                'talker = py_pubsub.publisher_member_function:main',
+        ],
+},`
+- now create subscriber node:
+  - `cd ~/rins/src/py_pubsub/py_pubsub`
+  - `wget https://raw.githubusercontent.com/ros2/examples/jazzy/rclpy/topics/minimal_subscriber/examples_rclpy_minimal_subscriber/subscriber_member_function.py`
+  - examine the code (..., MinimalSubscriber class has create_subscription(msg_type, 'topic name', listener_callback, queue_size), the listener_callback that prints message)
+  - same `package.xml` and `setup.cfg`
+  - in `setup.py` add entry point: `entry_points={
+        'console_scripts': [
+                'talker = py_pubsub.publisher_member_function:main',
+                'listener = py_pubsub.subscriber_member_function:main',
+        ],
+},`
+- build and run:
+  - check for missing deps: `cd ~/rins`, `rosdep install -i --from-path src --rosdistro jazzy -y`
+  - build new package: `cd ~/rins` and `colcon build --packages-select py_pubsub`
+  - source setup files `source install/setup.bash`
+  - run talker node: `ros2 run py_pubsub talker` and in another terminal run listener node: `ros2 run py_pubsub listener`
 
 
 ## Services
 
 In the tutorial you have examples of creating a service and a client as well as defining a custom service interface. We define a custom service by specifying the structure of the request that the service will accept and the response that it will return. 
 
-Use the following tutorials as a starting point:
+Use the following tutorials as a starting point (from [Simple publisher and subscriber in Python](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Service-And-Client.html) or [Simple service and client in C++](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Cpp-Service-And-Client.html)):
 
-- [Simple service and client in C++](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Cpp-Service-And-Client.html)
-- [Simple publisher and subscriber in Python](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Service-And-Client.html)
+- `cd ~/rins/src`
+- `ros2 pkg create --build-type ament_python --license Apache-2.0 py_srvcli --dependencies rclpy example_interfaces` (here `--dependencies` will automatically add the necessary dependency lines to `package.xml`)
+- add service node file `service_member_function.py` inside `~/rins/src/py_srvcli/py_srvcli` and add entry point for it into `~/rins/src/py_srvcli/setup.py`:
+```
+'service = py_srvcli.service_member_function:main',
+```
+- add client node file `client_member_function.py` inside `~/rins/src/py_srvcli/py_srvcli` and add entry point for it into `~/rins/src/py_srvcli/setup.py`:
+```
+entry_points={
+    'console_scripts': [
+        'service = py_srvcli.service_member_function:main',
+        'client = py_srvcli.client_member_function:main',
+    ],
+},
+```
+- build and run:
+  - `cd ~/rins`
+  - `rosdep install -i --from-path src --rosdistro jazzy -y`
+  - `colcon build --packages-select py_srvcli`
+  - `source install/setup.bash`
+  - run service node: `ros2 run py_srvcli service`
+  - run client node: `ros2 run py_srvcli client 2 3`
+  
 
 See the [interfaces doc](https://docs.ros.org/en/jazzy/Concepts/Basic/About-Interfaces.html) for a reference of all the possible native data types. The `ros2 interfaces list` command shows all built messages, services, and actions, which are themselves types that can be used in custom interfaces.
 
@@ -340,11 +385,318 @@ Open the file `homework1_answers.txt` from this repository, follow the instructi
 After you have installed and tested ROS2, as well as set up your own workspace you should:
 
 - Create a new package. In the package you can use C++ or Python.
+  - `cd ~/rins/src`
+  - `ros2 pkg create --build-type ament_cmake my_package_hw` (notice we are using ament_cmake, because we are putting messages and python node into same place and it generates code for messages, services, actions (uses CMakeLists.txt))
+
+| feature | ament_cmake | ament_python |
+|----------|----------|----------|
+| primary file | CMakeLists.txt | setup.py |
+| language | c++, py | py only |
+| interface support | yes (msg, srv, action) | no |
+| complexity | higher | lower |
+| performance | can be optimized for c++ | python speed |
+| use case | custom messages, c++/py nodes, mixed packages | pure python logic/nodes |
+
+- We have two basic types of communication:
+  - via message (publisher -> subscriber)
+  - via service (service server <-> service client)
+
 - Create a custom message type, that has a string fields, an integer field, and a bool field.
+  - `cd ~/rins/src/my_package_hw`
+  - `mkdir msg`
+  - `cd msg`
+  - `nano MyCustomMessage.msg`:
+  ```
+  string title
+  string message
+  int64 id
+  bool success
+  ```
+
 - Create a custom service type, where the request contains a string field and an array of integers, and the response contains a string field and an integer field.
+  - `cd ~/rins/src/my_package_hw`
+  - `mkdir srv`
+  - `cd srv`
+  - `nano MyCustomService.srv`:
+  ```
+  string question
+  int32[] ids
+  ---
+  string answer
+  int64 num
+  ```
+
+- update:
+  - `package.xml`:
+  ```
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
+  ```
+  - `CMakeLists.txt`:
+  ```
+  cmake_minimum_required(VERSION 3.8)
+  project(my_package_hw)
+
+  find_package(ament_cmake REQUIRED)
+  find_package(rclpy REQUIRED)
+  find_package(rosidl_default_generators REQUIRED)
+
+  # Generate the Message and Service
+  rosidl_generate_interfaces(${PROJECT_NAME}
+    "msg/MyCustomMessage.msg"
+    "srv/MyCustomService.srv"
+  )
+
+  # Install the Python node
+  install(PROGRAMS
+    scripts/my_node_hw.py
+    DESTINATION lib/${PROJECT_NAME}
+  )
+  ament_package()
+  ```
+
+![alt text](image.png)
+
 - Create a publisher node, that periodically sends a message on a certain topic. You should use the custom message you defined.
+  - `cd ~/rins/src/my_package_hw`
+  - `mkdir scripts`
+  - `nano scripts/my_node_hw.py`:
+  ```py
+  #!/usr/bin/env python3
+  import rclpy
+  from rclpy.node import Node
+
+  from my_package_hw.msg import MyCustomMessage
+
+  class MyPublisherNode(Node):
+
+    def __init__(self):
+        super().__init__('my_publisher_node')
+        self.publisher_ = self.create_publisher(MyCustomMessage, 'my_topic', 10)    # my_topic is created automatically
+        timer_period = 1.0
+        self.timer = self.create_timer(timer_period, self.timer_callback)
+        self.message_id = 1
+
+    def timer_callback(self):
+        msg = MyCustomMessage()
+        msg.title = 'Hello, ROS 2!'
+        msg.message = 'This is a custom message from my_package_hw.'
+        msg.id = self.message_id
+        self.message_id += 1
+        msg.success = True
+        self.publisher_.publish(msg)
+        self.get_logger().info(f'Publishing: {msg.title}, {msg.id}, {msg.success}')
+
+  def main(args=None):
+    rclpy.init(args=args)
+    my_publisher_node = MyPublisherNode()
+    try:
+        rclpy.spin(my_publisher_node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        my_publisher_node.destroy_node()
+        rclpy.shutdown()
+
+
+  if __name__ == '__main__':
+    main()
+  ```
+  - run `chmod +x ~/rins/src/my_package_hw/scripts/my_node_hw.py`
+  - build and run the node:
+    - `cd ~/rins`
+    - `colcon build --packages-select my_package_hw`
+    - `source install/setup.bash`
+    - `ros2 run my_package_hw my_node_hw.py`
+
 - Create a subscriber node, that recieves the message on the same topic and prints out its contents.
-- Create a custom service node that accepts an array of integers and responds with the SUM of the recieved integers. Use the custom service you defined.
-- Create a custom client node that generates random sequences of 10 integers, calls the service node, and prints out the response that it recieves from your service node.
+  - ...continue from before
+  - `cd ~/rins/src/my_package_hw`
+  - `nano scripts/my_subscriber_node.py`:
+  ```py
+  #!/usr/bin/env python3
+  import rclpy
+  from rclpy.node import Node
+
+  from my_package_hw.msg import MyCustomMessage
+
+  class MySubscriberNode(Node):
+
+    def __init__(self):
+        super().__init__('my_subscriber_node')
+        self.subscription = self.create_subscription(MyCustomMessage, 'my_topic', self.listener_callback, 10)    # my_topic is created automatically
+        self.subscription
+
+    def listener_callback(self, msg):
+        self.get_logger().info(
+            f'Received -> Title: "{msg.title}", Message: "{msg.message}", ID: {msg.id}, Success: {msg.success}'
+        )
+
+  def main(args=None):
+    rclpy.init(args=args)
+    my_subscriber_node = MySubscriberNode()
+    try:
+        rclpy.spin(my_subscriber_node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        my_subscriber_node.destroy_node()
+        rclpy.shutdown()
+
+
+  if __name__ == '__main__':
+    main()
+  ```
+  - run `chmod +x ~/rins/src/my_package_hw/scripts/my_subscriber_node.py`
+  - update CMakeLists.txt: `nano ~/rins/src/my_package_hw/CMakeLists.txt`:
+  ```
+  ...
+  install(PROGRAMS
+    scripts/my_node_hw.py
+    scripts/my_subscriber_node.py
+    DESTINATION lib/${PROJECT_NAME}
+  )
+  ...
+  ```
+  - build and run:
+    - `cd ~/rins`
+    - `colcon build --packages-select my_package_hw`
+    - in terminal 1 for publisher: `cd ~/rins`, `source install/setup.bash`, `ros2 run my_package_hw my_node_hw.py`
+    - in terminal 2 for subscriber: `cd ~/rins`, `source install/setup.bash`, `ros2 run my_package_hw my_subscriber_node.py`
+
+![alt text](image.png)
+
+- Create a custom service server node that accepts an array of integers and responds with the SUM of the recieved integers. Use the custom service you defined.
+  - `cd ~/rins/src/my_package_hw/scripts`
+  - `nano my_service_server.py`
+  ```py
+  #!/usr/bin/env python3
+  import rclpy
+  from rclpy.node import Node
+
+  from my_package_hw.srv import MyCustomService
+
+  class MyServiceNode(Node):
+
+    def __init__(self):
+      super().__init__('my_service_server')
+      self.srv = self.create_service(MyCustomService, 'sum_integers', self.sum_callback)
+      self.get_logger().info('Service server is ready to sum integers.')
+
+    def sum_callback(self, request, response):
+      total_sum = sum(request.ids)
+
+      response.num = total_sum
+      response.answer = f"Successfully calculated the sum of {len(request.ids)} numbers."
+
+      self.get_logger().info(f'Received question: "{request.question}"')
+      self.get_logger().info(f'Received array: {request.ids} -> Calculated sum: {total_sum}')
+      return response
+
+  def main(args=None):
+    rclpy.init(args=args)
+    my_service_server = MyServiceNode()
+    try:
+      rclpy.spin(my_service_server)
+    except KeyboardInterrupt:
+      pass
+    finally:
+      my_service_server.destroy_node()
+      rclpy.shutdown()
+
+  if __name__ == '__main__':
+    main()
+  ```
+  - `chmod +x ~/rins/src/my_package_hw/scripts/my_service_server.py`
+  - update CMakeLists.txt: `nano ~/rins/src/my_package_hw/CMakeLists.txt`:
+  ```
+  ...
+  install(PROGRAMS
+    scripts/my_node_hw.py
+    scripts/my_subscriber_node.py
+    scripts/my_service_server.py
+    DESTINATION lib/${PROJECT_NAME}
+  )
+  ...
+  ```
+  - build and run:
+    - `cd ~/rins`
+    - `colcon build --packages-select my_package_hw`
+    - in terminal 1 for service server: `cd ~/rins`, `source install/setup.bash`, `ros2 run my_package_hw my_service_server.py`
+    - in terminal 2 to call server: `cd ~/rins`, `source install/setup.bash`, `ros2 service call /sum_integers my_package_hw/srv/MyCustomService "{question: 'Can you sum these?', ids:[10, 20, 30, 40]}"`
+
+- Create a custom service client node that generates random sequences of 10 integers, calls the service node, and prints out the response that it recieves from your service node.
+  - `cd ~/rins/src/my_package_hw/scripts`
+  - `nano my_service_client.py`:
+  ```py
+  #!/usr/bin/env python3
+  import rclpy
+  from rclpy.node import Node
+  import random
+
+  from my_package_hw.srv import MyCustomService
+
+  class MyServiceClient(Node):
+
+    def __init__(self):
+      super().__init__('my_service_client')
+      self.client = self.create_client(MyCustomService, 'sum_integers')
+      while not self.client.wait_for_service(timeout_sec=1.0):
+        self.get_logger().info('Service not available, waiting again...')
+
+      self.req = MyCustomService.Request()
+
+    def send_request(self):
+      random_sequence =[random.randint(1, 100) for _ in range(10)]
+
+      self.req.question = "Please sum these random integers."
+      self.req.ids = random_sequence
+
+      self.get_logger().info(f'Sending array to be summed: {self.req.ids}')
+
+      self.future = self.client.call_async(self.req)   # call the service asynchronously
+
+      rclpy.spin_until_future_complete(self, self.future)    # wait for the response (blocks until server replies)
+
+      return self.future.result()
+
+  def main(args=None):
+    rclpy.init(args=args)
+    my_service_client = MyServiceClient()
+    response = my_service_client.send_request()    # send the request
+   
+    my_service_client.get_logger().info(
+        f'Received Response -> Message: "{response.answer}", Calculated Sum: {response.num}'
+    )
+
+    my_service_client.destroy_node()
+    rclpy.shutdown()
+
+  if __name__ == '__main__':
+    main()
+  ```
+  - `chmod +x ~/rins/src/my_package_hw/scripts/my_service_client.py`
+  - update CMakeLists.txt: `nano ~/rins/src/my_package_hw/CMakeLists.txt`:
+  ```
+  ...
+  install(PROGRAMS
+    scripts/my_node_hw.py
+    scripts/my_subscriber_node.py
+    scripts/my_service_server.py
+    scripts/my_service_client.py
+    DESTINATION lib/${PROJECT_NAME}
+  )
+  ...
+  ```
+  - build and run:
+    - `cd ~/rins`
+    - `colcon build --packages-select my_package_hw`
+    - in terminal 1 for service server: `cd ~/rins`, `source install/setup.bash`, `ros2 run my_package_hw my_service_server.py`
+    - in terminal 2 service client: `cd ~/rins`, `source install/setup.bash`, `ros2 run my_package_hw my_service_client.py`
 
 Compress your package into a single .zip archive named `homework1_package.zip` and upload the file on the available link on Učilnica.
